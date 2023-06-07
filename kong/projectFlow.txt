@@ -1,0 +1,29 @@
+tutorial: 
+https://docs.konghq.com/gateway/latest/get-started/services-and-routes/
+
+admin dashboard:
+http://localhost:8002/default/services
+
+
+flow of project (admin)
+
+1. create a service for the user to connect to 
+
+curl -i -s -X POST http://localhost:8001/services \
+  --data name=example_service \
+  --data url='http://mockbin.org'
+
+^^This request instructs Kong Gateway 
+to create a new service mapped to the upstream URL http://mockbin.org.
+
+2. Configure a new route on the /mock path to direct traffic 
+to the example_service service created earlier:
+curl -i -X POST http://localhost:8001/services/example_service/routes \
+  --data 'paths[]=/mock' \
+  --data name=example_route
+
+
+
+flow of project (user)
+1. Proxy a request through Kong Gateway to the /requests resource:
+curl -X GET http://localhost:8000/mock/requests
