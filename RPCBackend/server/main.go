@@ -18,6 +18,7 @@ package main
 import (
 	"context"
 	"log"
+	// "fmt"
 
 	"github.com/cloudwego/kitex-examples/server/kitex_gen/http"
 	"github.com/cloudwego/kitex-examples/server/kitex_gen/http/bizservice"
@@ -30,6 +31,7 @@ type BizServiceImpl struct{}
 // BizMethod1 implements the BizServiceImpl interface.
 func (s *BizServiceImpl) BizMethod1(ctx context.Context, req *http.BizRequest) (resp *http.BizResponse, err error) {
 	klog.Infof("BizMethod1 called, request: %#v", req)
+	// fmt.Println(req.Items[2])
 	return &http.BizResponse{HttpCode: 200, Text: "Method1 response", Token: 1111}, nil
 }
 

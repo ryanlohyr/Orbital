@@ -21,6 +21,18 @@ import (
 //run command in command line: go build -o hertz_demo && ./hertz_demo
 //to test endpoint: curl http://127.0.0.1:8888/ping
 
+
+/**
+ * Makes a Thrift call to the specified endpoint.
+ *
+ * @param IDLPath The path to the Thrift IDL file.
+ * @param response The response data to be sent in the request body.
+ * @param requestURL The URL of the request.
+ * @param ctx The context for the request.
+ * @return The response from the Thrift call.
+ * @return An error if there was an issue with the Thrift call.
+ */
+
 func makeThriftCall(IDLPath string, response []byte, requestURL string, ctx context.Context) (interface{},  error)  {
 	p, err := generic.NewThriftFileProvider(IDLPath)
 	if err != nil {
@@ -31,6 +43,8 @@ func makeThriftCall(IDLPath string, response []byte, requestURL string, ctx cont
 	if err != nil {
 		return 0, errors.New(("error creating thrift generic"))
 	} 
+
+	//client specifies the endpoint for the rpc backend
 	cli, err := genericclient.NewClient("Hello", g,client.WithHostPorts("0.0.0.0:8888"))
 
 
@@ -54,6 +68,7 @@ func makeThriftCall(IDLPath string, response []byte, requestURL string, ctx cont
 
 	fmt.Println(customReq)
 
+	//rpc call to the backend 
 	resp, err := cli.GenericCall(ctx, "hello", customReq)
 
 	fmt.Println("generic call successful")
@@ -83,7 +98,7 @@ func main() {
 	})
 
 	h.POST("/post", func(ctx context.Context, c *app.RequestContext) {
-        //url to send request to??
+        //url to send request to
 		var requestUrl string = "http://example.com/life/client/11?vint64=1&items=item0,item1,itme2"
 		var IDLPath string = "./hello.thrift"
 		var jsonData map[string]interface{}
@@ -101,15 +116,19 @@ func main() {
 		}
 
 		//whatever the key value is,  has to be consistent with backend
+		//in this case key must be set as 'text'
 		dataValue, ok := jsonData["text"].(string) 
 
         fmt.Println("message is " + dataValue)
 
+		//request validation 
 		if !ok {
-			c.String(consts.StatusBadRequest, "data provided was not a string")
+			//error handling 
+			c.String(consts.StatusBadRequest, `key provided has to be called "text" ` )
 			return
 		}
 		
+		//converts the response to thrift binary format
 		responseFromRPC, err := makeThriftCall(IDLPath, response, requestUrl,ctx)
 
         if(err != nil){
