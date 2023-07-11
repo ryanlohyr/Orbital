@@ -34,54 +34,23 @@ import (
  */
 
 func makeThriftCall(IDLPath string, response []byte, requestURL string, ctx context.Context) (interface{},  error)  {
+	//json version
 	p, err := generic.NewThriftFileProvider(IDLPath)
 	if err != nil {
 		fmt.Println("error creating thrift file provider")
 		return 0, err
 	}
-	g, err := generic.HTTPThriftGeneric(p)
+	g, err := generic.JSONThriftGeneric(p)
 	if err != nil {
 		return 0, errors.New(("error creating thrift generic"))
 	} 
 
 	//client specifies the endpoint for the rpc backend
 	cli, err := genericclient.NewClient("Hello", g,client.WithHostPorts("0.0.0.0:8888"))
+	resp, err := cli.GenericCall(ctx, "ExampleMethod", "{\"Msg\": \"hello\"}")
+	// resp is a JSON string
 
-
-	if err != nil {
-		return 0, errors.New(("invalid client name"))
-	}
-
-	req, err := http.NewRequest(http.MethodGet, requestURL, bytes.NewBuffer(response))
-	req.Header.Set("token", "1")
-	if err != nil {
-		fmt.Println("error constructing req")
-		return 0, err
-	}
-
-	customReq, err := generic.FromHTTPRequest(req)
-
-	if err != nil {
-		fmt.Println("error creating custom req")
-		return 0, err
-	}
-
-	fmt.Println(customReq)
-
-	//rpc call to the backend 
-	resp, err := cli.GenericCall(ctx, "hello", customReq)
-
-	fmt.Println("generic call successful")
-	fmt.Println(resp)
-
-	if err != nil {
-		fmt.Println("error making generic call")
-		return 0,err
-	}
-
-	realResp := resp.(*generic.HTTPResponse)
-	
-    return realResp, nil
+	return resp,nil
 }
 
 func main() {
