@@ -1,57 +1,54 @@
-// Copyright 2021 CloudWeGo Authors
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-//
-
 package main
 
 import (
+    "github.com/cloudwego/kitex/pkg/generic"
+    "github.com/cloudwego/kitex/server/genericserver"
+    // "github.com/cloudwego/kitex/server"
+    // "github.com/cloudwego/kitex/pkg/rpcinfo"
+    // "github.com/kitex-contrib/registry-nacos/registry"
+	"fmt"
+    // "net"
 	"context"
-	"log"
-	// "fmt"
-
-	"github.com/cloudwego/kitex-examples/server/kitex_gen/http"
-	"github.com/cloudwego/kitex-examples/server/kitex_gen/http/bizservice"
-	"github.com/cloudwego/kitex/pkg/klog"
 )
 
-// BizServiceImpl implements the last service interface defined in the IDL.
-type BizServiceImpl struct{}
-
-// BizMethod1 implements the BizServiceImpl interface.
-func (s *BizServiceImpl) BizMethod1(ctx context.Context, req *http.BizRequest) (resp *http.BizResponse, err error) {
-	klog.Infof("BizMethod1 called, request: %#v", req)
-	// fmt.Println(req.Items[2])
-	return &http.BizResponse{HttpCode: 200, Text: "Method1 response", Token: 1111}, nil
-}
-
-// BizMethod2 implements the BizServiceImpl interface.
-func (s *BizServiceImpl) BizMethod2(ctx context.Context, req *http.BizRequest) (resp *http.BizResponse, err error) {
-	klog.Infof("BizMethod2 called, request: %#v", req)
-	return &http.BizResponse{HttpCode: 200, Text: "Method2 response", Token: 2222}, nil
-}
-
-// BizMethod3 implements the BizServiceImpl interface.
-func (s *BizServiceImpl) BizMethod3(ctx context.Context, req *http.BizRequest) (resp *http.BizResponse, err error) {
-	klog.Infof("BizMethod3 called, request: %#v", req)
-	return &http.BizResponse{HttpCode: 200, Text: "Method3 response", Token: 3333}, nil
-}
-
 func main() {
-	svr := bizservice.NewServer(new(BizServiceImpl))
+    // Parse IDL with Local Files
+    // YOUR_IDL_PATH thrift file path,eg: ./idl/example.thrift
+    p, err := generic.NewThriftFileProvider("./hello.thrift")
+    // r, err := registry.NewDefaultNacosRegistry()
+    if err != nil {
+        panic(err)
+    }
 
-	err := svr.Run()
-	if err != nil {
-		log.Println(err.Error())
-	}
+    g, err := generic.JSONThriftGeneric(p)
+    if err != nil {
+        panic(err)
+    }
+    svr := genericserver.NewServer(
+        new(GenericServiceImpl), 
+        g,
+        // server.WithRegistry(r),
+        // server.WithServerBasicInfo(&rpcinfo.EndpointBasicInfo{ServiceName: "Hello"}),
+		// server.WithServiceAddr(&net.TCPAddr{IP: net.IPv4(127, 0, 0, 1), Port: 8080}),
+
+    )
+    if err != nil {
+        panic(err)
+    }
+    errr := svr.Run()
+    if errr != nil {
+        panic(err)
+    }
+    // resp is a JSON string
 }
+
+type GenericServiceImpl struct {
+}
+
+func (g *GenericServiceImpl) GenericCall(ctx context.Context, method string, request interface{}) (response interface{}, err error) {
+        // use jsoniter or other json parse sdk to assert request
+        m := request.(string)
+        fmt.Printf("Recv: %v\n", m)
+        return  "{\"Msg\": \"Post request recieved\"}", nil
+}
+
