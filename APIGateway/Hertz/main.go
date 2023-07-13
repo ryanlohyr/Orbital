@@ -15,22 +15,40 @@ import (
 	"github.com/cloudwego/kitex/client"
 	"github.com/cloudwego/kitex/client/genericclient"
 	"github.com/cloudwego/kitex/pkg/generic"
+	"github.com/cloudwego/kitex/pkg/loadbalance"
+)
+
+type ctxKey int
+
+const (
+	ctxConsistentKey ctxKey = iota
 )
 
 //run command in command line: go build -o hertz_demo && ./hertz_demo
 //to test endpoint: curl http://127.0.0.1:8888/ping
 
+func initialiseClient(g generic.Generic) (genericclient.Client, error) {
 
-func initialiseClient(g generic.Generic) (genericclient.Client, error){
+	// opt := loadbalance.NewConsistentHashOption(func(ctx context.Context, request interface{}) string {
+	// 	key, _ := ctx.Value(ctxConsistentKey).(string)
+	// 	return key
+	// })
+	// lb := loadbalance.NewConsistBalancer(opt)
+
+	//docs: https://pkg.go.dev/github.com/cloudwego/kitex/pkg/loadbalance#Loadbalancer
+	//NewWeightedBalancer creates a loadbalancer using weighted-round-robin algorithm.
+	lb := loadbalance.NewWeightedBalancer()
+
 	//client specifies the endpoint for the rpc backend
 	cli, err := genericclient.NewClient(
-	"Hello",
-	g,
-	client.WithHostPorts("0.0.0.0:8888"),
+		"Hello",
+		g,
+		client.WithHostPorts("0.0.0.0:8888", "0.0.0.0:8889"),
+		client.WithLoadBalancer(lb),
 	)
+
 	return cli, err
 }
-
 
 /**
  * Makes a Thrift call to the specified endpoint.
@@ -59,7 +77,6 @@ func makeThriftCall(IDLPath string, response string, ctx context.Context) (inter
 	}
 
 	cli, err := initialiseClient(g)
-	
 
 	if err != nil {
 		return 0, errors.New(("error creating client"))
@@ -68,9 +85,12 @@ func makeThriftCall(IDLPath string, response string, ctx context.Context) (inter
 	//inputs message sent by client
 	message := fmt.Sprintf("{\"Msg\": \"%s\"}", response)
 
+	ctx = context.WithValue(ctx, ctxConsistentKey, "my key0")
+	
 	resp, err := cli.GenericCall(ctx, "ExampleMethod", message)
 
 	if err != nil {
+		fmt.Println(err)
 		return 0, errors.New(("error making rpc call to server "))
 	}
 

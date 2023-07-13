@@ -3,19 +3,20 @@ package main
 import (
     "github.com/cloudwego/kitex/pkg/generic"
     "github.com/cloudwego/kitex/server/genericserver"
-    // "github.com/cloudwego/kitex/server"
+    "github.com/cloudwego/kitex/server"
     // "github.com/cloudwego/kitex/pkg/rpcinfo"
     // "github.com/kitex-contrib/registry-nacos/registry"
+    "log"
 	"fmt"
-    // "net"
+    "net"
 	"context"
+    "sync"
 )
 
 func main() {
     // Parse IDL with Local Files
-    // YOUR_IDL_PATH thrift file path,eg: ./idl/example.thrift
     p, err := generic.NewThriftFileProvider("./hello.thrift")
-    // r, err := registry.NewDefaultNacosRegistry()
+
     if err != nil {
         panic(err)
     }
@@ -24,22 +25,39 @@ func main() {
     if err != nil {
         panic(err)
     }
-    svr := genericserver.NewServer(
+    svr0 := genericserver.NewServer(
         new(GenericServiceImpl), 
         g,
-        // server.WithRegistry(r),
-        // server.WithServerBasicInfo(&rpcinfo.EndpointBasicInfo{ServiceName: "Hello"}),
-		// server.WithServiceAddr(&net.TCPAddr{IP: net.IPv4(127, 0, 0, 1), Port: 8080}),
+		server.WithServiceAddr(&net.TCPAddr{Port: 8888}),
 
     )
-    if err != nil {
-        panic(err)
-    }
-    errr := svr.Run()
-    if errr != nil {
-        panic(err)
-    }
-    // resp is a JSON string
+
+    svr1 := genericserver.NewServer(
+        new(GenericServiceImpl2), 
+        g,
+		server.WithServiceAddr(&net.TCPAddr{Port: 8889}),
+
+    )
+
+    var wg sync.WaitGroup
+	wg.Add(2)
+	go func() {
+		defer wg.Done()
+		if err := svr0.Run(); err != nil {
+			log.Println("server0 stopped with error:", err)
+		} else {
+			log.Println("server0 stopped")
+		}
+	}()
+	go func() {
+		defer wg.Done()
+		if err := svr1.Run(); err != nil {
+			log.Println("server1 stopped with error:", err)
+		} else {
+			log.Println("server1 stopped")
+		}
+	}()
+	wg.Wait()
 }
 
 type GenericServiceImpl struct {
@@ -48,7 +66,17 @@ type GenericServiceImpl struct {
 func (g *GenericServiceImpl) GenericCall(ctx context.Context, method string, request interface{}) (response interface{}, err error) {
         // use jsoniter or other json parse sdk to assert request
         m := request.(string)
-        fmt.Printf("Recv: %v\n", m)
+        fmt.Printf("Recv in server 1: %v\n", m)
         return  "{\"Msg\": \"Post request recieved\"}", nil
 }
 
+
+type GenericServiceImpl2 struct {
+}
+
+func (g *GenericServiceImpl2) GenericCall(ctx context.Context, method string, request interface{}) (response interface{}, err error) {
+        // use jsoniter or other json parse sdk to assert request
+        m := request.(string)
+        fmt.Printf("Recv in server 2: %v\n", m)
+        return  "{\"Msg\": \"Post request recieved\"}", nil
+}
