@@ -5,7 +5,7 @@ go 1.16
 require (
 	github.com/apache/thrift v0.13.0
 	github.com/bytedance/gopkg v0.0.0-20220817015305-b879a72dc90f
-	github.com/cloudwego/kitex v0.5.0
+	github.com/cloudwego/kitex v0.5.1
 	github.com/kitex-contrib/monitor-prometheus v0.1.0
 	github.com/kitex-contrib/obs-opentelemetry v0.2.1
 	github.com/kitex-contrib/obs-opentelemetry/logging/logrus v0.0.0-20230219092456-5e6c84962323
@@ -19,6 +19,8 @@ require (
 
 require (
 	github.com/HdrHistogram/hdrhistogram-go v1.1.2 // indirect
+	github.com/kitex-contrib/registry-nacos v0.1.0 // indirect
+	github.com/nacos-group/nacos-sdk-go v1.1.4 // indirect
 	github.com/uber/jaeger-lib v2.4.1+incompatible // indirect
 )
 

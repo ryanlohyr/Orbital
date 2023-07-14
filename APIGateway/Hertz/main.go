@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-
+	"time"
 	"github.com/cloudwego/hertz/pkg/app"
 	"github.com/cloudwego/hertz/pkg/app/server"
 	"github.com/cloudwego/hertz/pkg/common/utils"
@@ -16,6 +16,10 @@ import (
 	"github.com/cloudwego/kitex/client/genericclient"
 	"github.com/cloudwego/kitex/pkg/generic"
 	"github.com/cloudwego/kitex/pkg/loadbalance"
+	"github.com/nacos-group/nacos-sdk-go/common/constant"
+	"github.com/nacos-group/nacos-sdk-go/vo"
+	"github.com/nacos-group/nacos-sdk-go/clients"
+	"github.com/kitex-contrib/registry-nacos/resolver"
 )
 
 type ctxKey int
@@ -24,18 +28,42 @@ const (
 	ctxConsistentKey ctxKey = iota
 )
 
-//run command in command line: go build -o hertz_demo && ./hertz_demo
-//to test endpoint: curl http://127.0.0.1:8888/ping
 
+/**
+ *
+ *Initializes a generic client using the given generic type and returns a client instance.
+ * This function initializes a generic client by configuring various parameters such as server configuration,
+ * client configuration, load balancing algorithm, resolver, and RPC timeout. It returns a client instance
+ * along with an error, if any.
+ * @param g The generic type to be used for the client.
+ * @return The initialized client instance and an error, if any.
+ *
+**/
 func initialiseClient(g generic.Generic) (genericclient.Client, error) {
+	sc := []constant.ServerConfig{
+		*constant.NewServerConfig("127.0.0.1", 8848),
+	}
 
-	// opt := loadbalance.NewConsistentHashOption(func(ctx context.Context, request interface{}) string {
-	// 	key, _ := ctx.Value(ctxConsistentKey).(string)
-	// 	return key
-	// })
-	// lb := loadbalance.NewConsistBalancer(opt)
+	// the nacos client config
+	cc := constant.ClientConfig{
+		NamespaceId:         "public",
+		TimeoutMs:           5000,
+		NotLoadCacheAtStart: true,
+		LogDir:              "/tmp/nacos/log",
+		CacheDir:            "/tmp/nacos/cache",
+		LogLevel:            "info",
+	}
 
-	//docs: https://pkg.go.dev/github.com/cloudwego/kitex/pkg/loadbalance#Loadbalancer
+	resolvercli, err := clients.NewNamingClient(
+		vo.NacosClientParam{
+			ClientConfig:  &cc,
+			ServerConfigs: sc,
+		},
+	)
+	if err != nil {
+		panic(err)
+	}
+
 	//NewWeightedBalancer creates a loadbalancer using weighted-round-robin algorithm.
 	lb := loadbalance.NewWeightedBalancer()
 
@@ -45,6 +73,8 @@ func initialiseClient(g generic.Generic) (genericclient.Client, error) {
 		g,
 		client.WithHostPorts("0.0.0.0:8888", "0.0.0.0:8889"),
 		client.WithLoadBalancer(lb),
+		client.WithResolver(resolver.NewNacosResolver(resolvercli)),
+		client.WithRPCTimeout(time.Second*3),
 	)
 
 	return cli, err
@@ -108,7 +138,7 @@ func makeThriftCall(IDLPath string, response string, ctx context.Context) (inter
 }
 
 func main() {
-	//we can use server.WithHostPorts as it returns a type of config.option
+
 	h := server.Default(server.WithHostPorts("0.0.0.0:8881"))
 
 	h.GET("/ping", func(ctx context.Context, c *app.RequestContext) {
@@ -117,7 +147,6 @@ func main() {
 
 	h.GET("/get", func(ctx context.Context, c *app.RequestContext) {
 		c.String(consts.StatusOK, "get")
-		// c.AbortWithStatus(300)
 	})
 
 	h.POST("/post", func(ctx context.Context, c *app.RequestContext) {
