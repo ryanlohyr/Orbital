@@ -15,14 +15,28 @@ import (
 	"github.com/nacos-group/nacos-sdk-go/clients"
 	"github.com/nacos-group/nacos-sdk-go/common/constant"
 	"github.com/nacos-group/nacos-sdk-go/vo"
+	// "github.com/cloudwego/kitex-examples/hello/kitex_gen/api@latest"
 )
 
-func main() {
+func initialiseThriftGeneric(thriftName string)(generic.Generic,error){
+	thriftDirectory := fmt.Sprintf("./thriftFiles/%s.thrift",thriftName)
 	// Parse IDL with Local Files
-	p, err := generic.NewThriftFileProvider("./hello.thrift")
+	p, err := generic.NewThriftFileProvider(thriftDirectory)
 	if err != nil {
-		panic(err)
+		return nil,err
 	}
+
+	g, err := generic.JSONThriftGeneric(p)
+	if err != nil {
+		return g,err
+	}
+
+	return g,nil
+}
+
+
+func main() {
+
 	sc := []constant.ServerConfig{
 		*constant.NewServerConfig("127.0.0.1", 8848),
 	}
@@ -46,21 +60,19 @@ func main() {
 		panic(err)
 	}
 
+	g_one, err := initialiseThriftGeneric("Hello")
 	if err != nil {
 		panic(err)
 	}
 
-	// r, err := registry.NewDefaultNacosRegistry()
-	// if err != nil {
-	//     panic(err)
-	// }
-	g, err := generic.JSONThriftGeneric(p)
+	g_two, err := initialiseThriftGeneric("add")
 	if err != nil {
 		panic(err)
 	}
+	
 	svr0 := genericserver.NewServer(
 		new(GenericServiceImpl),
-		g,
+		g_one,
 		server.WithServiceAddr(&net.TCPAddr{Port: 8888}),
 		server.WithRegistry(registry.NewNacosRegistry(cli)),
 		server.WithServerBasicInfo(&rpcinfo.EndpointBasicInfo{ServiceName: "Hello"}),
@@ -68,10 +80,18 @@ func main() {
 
 	svr1 := genericserver.NewServer(
 		new(GenericServiceImpl2),
-		g,
+		g_one,
 		server.WithServiceAddr(&net.TCPAddr{Port: 8889}),
 		server.WithRegistry(registry.NewNacosRegistry(cli)),
 		server.WithServerBasicInfo(&rpcinfo.EndpointBasicInfo{ServiceName: "Hello"}),
+	)
+
+	svr2 := genericserver.NewServer(
+		new(GenericServiceImpl2),
+		g_two,
+		server.WithServiceAddr(&net.TCPAddr{Port: 8887}),
+		server.WithRegistry(registry.NewNacosRegistry(cli)),
+		server.WithServerBasicInfo(&rpcinfo.EndpointBasicInfo{ServiceName: "add"}),
 	)
 
 	var wg sync.WaitGroup
@@ -92,8 +112,24 @@ func main() {
 			log.Println("server1 stopped")
 		}
 	}()
+
+	go func() {
+		defer wg.Done()
+		if err := svr2.Run(); err != nil {
+			log.Println("server1 stopped with error:", err)
+		} else {
+			log.Println("server1 stopped")
+		}
+	}()
+
+
 	wg.Wait()
+
+	
+
 }
+
+
 
 type GenericServiceImpl struct {
 }
@@ -114,3 +150,21 @@ func (g *GenericServiceImpl2) GenericCall(ctx context.Context, method string, re
 	fmt.Printf("Recv in server 2: %v\n", m)
 	return "{\"Msg\": \"Post request recieved\"}", nil
 }
+
+type HelloImpl struct{}
+
+// Echo implements the HelloImpl interface.
+func (s *HelloImpl) Echo(ctx context.Context, req string) (resp string, err error) {
+	// TODO: Your code here...
+	// resp = &api.Response{Message: req.Message}
+	resp = fmt.Sprintf("{\"Echo is\": %s}",req)
+	return resp, nil
+}
+
+// // Add implements the HelloImpl interface.
+// func (s *HelloImpl) Add(ctx context.Context, req *api.AddRequest) (resp *api.AddResponse, err error) {
+// 	// TODO: Your code here...
+// 	resp = &api.AddResponse{Sum: req.First + req.Second}
+// 	return
+// }
+
