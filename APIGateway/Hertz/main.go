@@ -214,10 +214,15 @@ func main() {
 	})
 
 	h.POST("/post/:serviceName/:methodName", func(ctx context.Context, c *app.RequestContext) {
+
 		serviceName := c.Param("serviceName")
+		
 		methodName := c.Param("methodName")
+
 		var jsonData map[string]interface{}
+
 		thriftDirectory := fmt.Sprintf("./thriftFiles/%s.thrift",serviceName)
+
 		var IDLPath string = thriftDirectory
 
 		//returns data in an array of bytes
@@ -235,7 +240,8 @@ func main() {
 		//whatever the key value is,  has to be consistent with backend
 
 		//in this case key must be set as 'text'
-		dataValue, ok := jsonData["text"]
+		dataValue, ok := jsonData["data"]
+
 		if !ok {
 			//error handling
 			c.String(consts.StatusBadRequest, `key provided has to be called "text" `)

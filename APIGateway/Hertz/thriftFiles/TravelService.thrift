@@ -1,16 +1,16 @@
 include "base.thrift"
 namespace go kitex.test.server
 
-struct ExampleReq {
+struct ClientReq {
     1: required string Msg,
     255: base.Base Base,
 }
-struct ExampleResp {
+struct ClientResp {
     1: required string Msg,
     255: base.BaseResp BaseResp,
 }
-service ExampleService {
-    ExampleResp ExampleMethod(1: ExampleReq req),
+service TravelService {
+    ClientReq SendClientData(1: ClientReq req),
 }
 
 

@@ -2,12 +2,16 @@ package main
 
 import (
 	"context"
+	// "errors"
 	"fmt"
 	"log"
+	// "math/rand"
 	"net"
 	"sync"
 
+	// "github.com/cloudwego/kitex/pkg/acl"
 	"github.com/cloudwego/kitex/pkg/generic"
+	"github.com/cloudwego/kitex/pkg/limit"
 	"github.com/cloudwego/kitex/pkg/rpcinfo"
 	"github.com/cloudwego/kitex/server"
 	"github.com/cloudwego/kitex/server/genericserver"
@@ -15,8 +19,20 @@ import (
 	"github.com/nacos-group/nacos-sdk-go/clients"
 	"github.com/nacos-group/nacos-sdk-go/common/constant"
 	"github.com/nacos-group/nacos-sdk-go/vo"
-	// "github.com/cloudwego/kitex-examples/hello/kitex_gen/api@latest"
+
+	// api "github.com/cloudwego/kitex-examples/hello/kitex_gen/api/hello"
 )
+
+// func RejectFunc(ctx context.Context, request interface{}) (error) {
+
+// 	var errRejected = errors.New("1% rejected")
+
+// 	// Implements a judge function.
+//     if rand.Intn(100) == 0 {
+//         return errRejected // an error should be returned when a request is rejected
+//     }
+//     	return nil
+// }
 
 func initialiseThriftGeneric(thriftName string)(generic.Generic,error){
 	thriftDirectory := fmt.Sprintf("./thriftFiles/%s.thrift",thriftName)
@@ -56,11 +72,19 @@ func main() {
 			ServerConfigs: sc,
 		},
 	)
+
+	
+
+	// create the middleware
+	// var MyMiddleware = acl.NewACLMiddleware(RejectFunc) 
+
+
+
 	if err != nil {
 		panic(err)
 	}
 
-	g_one, err := initialiseThriftGeneric("Hello")
+	g_one, err := initialiseThriftGeneric("TravelService")
 	if err != nil {
 		panic(err)
 	}
@@ -75,7 +99,9 @@ func main() {
 		g_one,
 		server.WithServiceAddr(&net.TCPAddr{Port: 8888}),
 		server.WithRegistry(registry.NewNacosRegistry(cli)),
-		server.WithServerBasicInfo(&rpcinfo.EndpointBasicInfo{ServiceName: "Hello"}),
+		server.WithServerBasicInfo(&rpcinfo.EndpointBasicInfo{ServiceName: "TravelService"}),
+		server.WithLimit(&limit.Option{MaxConnections: 10000, MaxQPS: 1000}),
+		// server.WithMiddleware(MyMiddleware),
 	)
 
 	svr1 := genericserver.NewServer(
@@ -83,16 +109,30 @@ func main() {
 		g_one,
 		server.WithServiceAddr(&net.TCPAddr{Port: 8889}),
 		server.WithRegistry(registry.NewNacosRegistry(cli)),
-		server.WithServerBasicInfo(&rpcinfo.EndpointBasicInfo{ServiceName: "Hello"}),
+		server.WithServerBasicInfo(&rpcinfo.EndpointBasicInfo{ServiceName: "TravelService"}),
+		server.WithLimit(&limit.Option{MaxConnections: 10000, MaxQPS: 1000}),
 	)
 
+
+	// //in order to change the Impl, need to change genericserver to something else
 	svr2 := genericserver.NewServer(
 		new(GenericServiceImpl2),
 		g_two,
 		server.WithServiceAddr(&net.TCPAddr{Port: 8887}),
 		server.WithRegistry(registry.NewNacosRegistry(cli)),
 		server.WithServerBasicInfo(&rpcinfo.EndpointBasicInfo{ServiceName: "add"}),
+		server.WithLimit(&limit.Option{MaxConnections: 10000, MaxQPS: 1000}),
 	)
+
+	//in order to change the Impl, need to change genericserver to something else
+	// svr2 := api.NewServer(
+	// 	new(HelloImpl),
+	// 	g_two,
+	// 	server.WithServiceAddr(&net.TCPAddr{Port: 8887}),
+	// 	server.WithRegistry(registry.NewNacosRegistry(cli)),
+	// 	server.WithServerBasicInfo(&rpcinfo.EndpointBasicInfo{ServiceName: "add"}),
+	// 	server.WithLimit(&limit.Option{MaxConnections: 10000, MaxQPS: 1000}),
+	// )
 
 	var wg sync.WaitGroup
 	wg.Add(2)
