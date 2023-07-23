@@ -80,8 +80,6 @@ func TestInitialisingGenericClientWithInvalidIDL(t *testing.T){
 	}
 
     fmt.Println(p)
-
-
 }
 
 
