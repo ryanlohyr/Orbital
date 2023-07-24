@@ -39,6 +39,18 @@ func TestEmptyServiceHosts(t *testing.T){
 	}
 }
 
+func TestInvalidServiceRegistryServiceHosts(t *testing.T){
+    hostList,ok := getServiceHosts("invalidServiceName","invalid serviceRegistryIP")["hosts"].([]interface{})
+    if(ok){
+        t.Fatalf("Should return error")
+	}
+    if hostList != nil{
+		t.Fatalf("Should return nil")
+	}
+}
+
+
+
 func TestInitialisingGenericClient(t *testing.T){
 
     thriftDirectory := fmt.Sprintf("./thriftFiles/%s.thrift","TravelService")

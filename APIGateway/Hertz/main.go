@@ -45,7 +45,7 @@ const (
 func getServiceHosts(hosts string, serviceRegistryIP string) (map[string]interface{}){
 		route := fmt.Sprintf("%s/nacos/v1/ns/instance/list?serviceName=%s",serviceRegistryIP,hosts)
 		response, err := http.Get(route)
-		var jsonData map[string]interface{}
+		var jsonData map[string]interface{} = nil
 		if err != nil {
 			fmt.Printf("Error making GET request: %s\n", err)
 			return jsonData
@@ -133,6 +133,45 @@ func initialiseClient(g generic.Generic,serviceName string) (genericclient.Clien
 }
 
 /**
+ * @brief Formats the response based on the method name.
+ *
+ * This function takes the method name and the response data as input, and formats the response
+ * accordingly in JSON format. It checks the method name and response data to ensure that all
+ * required fields are present before creating the JSON response.
+ *
+ * @param[in] methodName The name of the method for which the response is being formatted.
+ * @param[in] response A map containing the response data in key-value pairs.
+ *
+ * @return A formatted JSON response string on success.
+ * @return An empty string and an error on failure, such as missing or invalid inputs.
+ */
+
+func formatResponse( methodName string, response map[string]interface{})(string, error){
+	var jsonResponse string 	
+	fmt.Println(response)
+	switch methodName {
+	case "sendReview":
+		if(response["data"] == nil || response["userID"] == nil){
+			return "", errors.New("invalid inputs")
+		}
+		jsonResponse = fmt.Sprintf("{\"Msg\":\"%s\",\"userID\": %i}", response["data"], response["userID"])
+	case "editReview":
+		if(response["data"] == nil || response["reviewID"] == nil|| response["postID"] == nil){
+			return "", errors.New("invalid inputs")
+		}
+		jsonResponse = fmt.Sprintf("{\"Msg\":\"%s\",\"reviewID\": %i,\"postID\": %i}", response["data"], response["reviewID"], response["postID"])
+	case "deleteReview":
+		if(response["reviewID"] == nil){
+			return "", errors.New("invalid inputs")
+		}
+		jsonResponse = fmt.Sprintf("{\"reviewID\":\"%s\",}", response["reviewID"])
+	default:
+		jsonResponse = fmt.Sprintf("{\"Msg\":\"%s\",}", response["data"])
+	}
+	return jsonResponse, nil;
+}
+
+/**
  * Makes a Thrift call to the specified endpoint.
  *
  * @param IDLPath The path to the Thrift IDL file.
@@ -142,7 +181,7 @@ func initialiseClient(g generic.Generic,serviceName string) (genericclient.Clien
  * @return The response from the Thrift call.
  * @return An error if there was an issue with the Thrift call.
  */
-func makeThriftCall(IDLPath string, response string,serviceName string,methodName string, ctx context.Context) (interface{}, error) {
+func makeThriftCall(IDLPath string, response map[string]interface{},serviceName string,methodName string, ctx context.Context) (interface{}, error) {
 	var jsonData map[string]interface{}
 
 	p, err := generic.NewThriftFileProvider(IDLPath)
@@ -163,21 +202,19 @@ func makeThriftCall(IDLPath string, response string,serviceName string,methodNam
 	if err != nil {
 		return nil, err
 	}
+	
+	message, err := formatResponse(methodName,response)
+	
 
-	//inputs message sent by client
-	message := fmt.Sprintf("{\"Msg\": \"%s\"}", response)
+	if err != nil {
+		return nil, err
+	}
 
 	ctx = context.WithValue(ctx, ctxConsistentKey, "my key0")
 	var resp interface{}
+	fmt.Println(methodName)
 	resp, err = cli.GenericCall(ctx, methodName, message)
 	
-	//TO DO: create rpc call like in client/hello/main.go in OrbitalTest
-	// if(serviceName == "Hello"){
-	// 	resp, err = cli.GenericCall(ctx, methodName, message)
-	// }else{ //since we only have two services, if serviceName is echo it will fall here
-	// 	resp, err = cli.Echo(ctx, methodName, message)
-	// }
-
 	if err != nil {
 		fmt.Println(err)
 		return 0, err
@@ -237,29 +274,8 @@ func main() {
 			return
 		}
 
-		//whatever the key value is,  has to be consistent with backend
-
-		//in this case key must be set as 'text'
-		dataValue, ok := jsonData["data"]
-
-		if !ok {
-			//error handling
-			c.String(consts.StatusBadRequest, `key provided has to be called "text" `)
-			return
-		}
-
-		//ensures that data is a string
-		stringValue, ok := dataValue.(string)
-
-		//request validation
-		if !ok {
-			//error handling
-			c.String(consts.StatusBadRequest, `value has to be string `)
-			return
-		}
-
 		//converts the response to thrift binary format
-		responseFromRPC, err := makeThriftCall(IDLPath, stringValue,serviceName,methodName, ctx)
+		responseFromRPC, err := makeThriftCall(IDLPath, jsonData,serviceName,methodName, ctx)
 
 		if err != nil {
 			fmt.Println("suo")
@@ -290,5 +306,3 @@ func main() {
 	h.Spin()
 }
 
-//converts json into []bytes
-//jsonBytes := []byte(`{"data":"helloworld"}`)
