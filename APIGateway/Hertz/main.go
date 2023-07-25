@@ -165,6 +165,16 @@ func formatResponse( methodName string, response map[string]interface{})(string,
 			return "", errors.New("invalid inputs")
 		}
 		jsonResponse = fmt.Sprintf("{\"reviewID\":\"%s\",}", response["reviewID"])
+	case "RetrieveClientData":
+		if(response["userID"] == nil){
+			return "", errors.New("invalid inputs")
+		}
+		jsonResponse = fmt.Sprintf("{\"userID\":\"%s\",}", response["reviewID"])
+	case "GetAllTravelDestinations":
+		if(response["userID"] == nil){
+			return "", errors.New("invalid inputs")
+		}
+		jsonResponse = fmt.Sprintf("{\"userID\":\"%s\",}", response["reviewID"])
 	default:
 		jsonResponse = fmt.Sprintf("{\"Msg\":\"%s\",}", response["data"])
 	}
@@ -278,10 +288,7 @@ func main() {
 		responseFromRPC, err := makeThriftCall(IDLPath, jsonData,serviceName,methodName, ctx)
 
 		if err != nil {
-			fmt.Println("suo")
 			fmt.Println(err)
-			fmt.Println("hello")
-			// c.Error(err)
 			c.String(consts.StatusBadRequest, err.Error())
 			return
 		}

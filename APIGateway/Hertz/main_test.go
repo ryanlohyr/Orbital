@@ -19,7 +19,7 @@ func TestValidServiceHosts(t *testing.T){
 		t.Fatalf("Should not have returned an empty list")
 	}
 
-    hostList,ok = getServiceHosts("add",serviceRegistryIP)["hosts"].([]interface{})
+    hostList,ok = getServiceHosts("ReviewService",serviceRegistryIP)["hosts"].([]interface{})
     if(!ok){
         t.Fatalf("List was not returned")
 	}
