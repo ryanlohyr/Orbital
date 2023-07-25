@@ -87,7 +87,6 @@ func main() {
 		server.WithRegistry(registry.NewNacosRegistry(cli)),
 		server.WithServerBasicInfo(&rpcinfo.EndpointBasicInfo{ServiceName: "TravelService"}),
 		server.WithLimit(&limit.Option{MaxConnections: 10000, MaxQPS: 1000}),
-		// server.WithMiddleware(MyMiddleware),
 	)
 
 	svr1 := genericserver.NewServer(
@@ -100,11 +99,19 @@ func main() {
 	)
 
 
-	// //in order to change the Impl, need to change genericserver to something else
 	svr2 := genericserver.NewServer(
 		new(GenericServiceImpl2),
 		g_two,
 		server.WithServiceAddr(&net.TCPAddr{Port: 8887}),
+		server.WithRegistry(registry.NewNacosRegistry(cli)),
+		server.WithServerBasicInfo(&rpcinfo.EndpointBasicInfo{ServiceName: "ReviewService"}),
+		server.WithLimit(&limit.Option{MaxConnections: 10000, MaxQPS: 1000}),
+	)
+
+	svr3 := genericserver.NewServer(
+		new(GenericServiceImpl2),
+		g_two,
+		server.WithServiceAddr(&net.TCPAddr{Port: 8886}),
 		server.WithRegistry(registry.NewNacosRegistry(cli)),
 		server.WithServerBasicInfo(&rpcinfo.EndpointBasicInfo{ServiceName: "ReviewService"}),
 		server.WithLimit(&limit.Option{MaxConnections: 10000, MaxQPS: 1000}),
@@ -132,6 +139,15 @@ func main() {
 	go func() {
 		defer wg.Done()
 		if err := svr2.Run(); err != nil {
+			log.Println("server1 stopped with error:", err)
+		} else {
+			log.Println("server1 stopped")
+		}
+	}()
+
+	go func() {
+		defer wg.Done()
+		if err := svr3.Run(); err != nil {
 			log.Println("server1 stopped with error:", err)
 		} else {
 			log.Println("server1 stopped")
@@ -173,7 +189,7 @@ func (g *GenericServiceImpl) GenericCall(ctx context.Context, method string, req
 		fmt.Println((data["Msg"]))
 		jsonResponse = fmt.Sprintf("{\"Msg\": \"Post request recieved, the message sent was %s\",\"BaseResp\":{\"StatusCode\":200,\"StatusMessage\":\"Success\"}}",data["Msg"])
 	case "RetrieveClientData":
-		jsonResponse = fmt.Sprintf("{\"VisitedCountries\": [\"%s\",\"Singapore\",\"Malaysia\",\"Japan\"],\"Name\": \"Ryan\",\"id\": 23,\"BaseResp\":{\"StatusCode\":200,\"StatusMessage\":\"Success\"}}","Taiwan")
+		jsonResponse = fmt.Sprintf("{\"VisitedCountries\": [\"%s\",\"Singapore\",\"Malaysia\",\"Japan\"],\"Name\": \"Ryan\",\"userID\": %i,\"BaseResp\":{\"StatusCode\":200,\"StatusMessage\":\"Success\"}}","Taiwan",data["userID"])
 	case "GetAllTravelDestinations":
 		jsonResponse = fmt.Sprintf("{\"Destinations\": [\"%s\",\"Japan\",\"Sweden\",\"Netherlands\"],\"BaseResp\":{\"StatusCode\":200,\"StatusMessage\":\"Success\"}}","Myammar")
 	default:

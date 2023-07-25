@@ -23,7 +23,7 @@ struct TravelDestResp {
 
 struct RetrieveClientResp{
     1: required string Name,
-    2: required i64 id,
+    2: required i32 userID,
     3: required list<string> VisitedCountries,
     255: base.BaseResp BaseResp,
 

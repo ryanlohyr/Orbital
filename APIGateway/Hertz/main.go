@@ -164,17 +164,17 @@ func formatResponse( methodName string, response map[string]interface{})(string,
 		if(response["reviewID"] == nil){
 			return "", errors.New("invalid inputs")
 		}
-		jsonResponse = fmt.Sprintf("{\"reviewID\":\"%s\",}", response["reviewID"])
+		jsonResponse = fmt.Sprintf("{\"reviewID\":%i,}", response["reviewID"])
 	case "RetrieveClientData":
 		if(response["userID"] == nil){
 			return "", errors.New("invalid inputs")
 		}
-		jsonResponse = fmt.Sprintf("{\"userID\":\"%s\",}", response["reviewID"])
+		jsonResponse = fmt.Sprintf("{\"userID\":%i}", response["userID"])
 	case "GetAllTravelDestinations":
 		if(response["userID"] == nil){
 			return "", errors.New("invalid inputs")
 		}
-		jsonResponse = fmt.Sprintf("{\"userID\":\"%s\",}", response["reviewID"])
+		jsonResponse = fmt.Sprintf("{\"userID\":%i,}", response["userID"])
 	default:
 		jsonResponse = fmt.Sprintf("{\"Msg\":\"%s\",}", response["data"])
 	}
@@ -251,7 +251,7 @@ func main() {
 
 	h.GET("/ping", func(ctx context.Context, c *app.RequestContext) {
 
-		c.JSON(consts.StatusOK, utils.H{"message": "hello from ryan"})
+		c.JSON(consts.StatusOK, utils.H{"message": "hello from api gateway"})
 	})
 
 	h.GET("/getServiceHosts/:hosts", func(ctx context.Context, c *app.RequestContext) {
@@ -260,7 +260,7 @@ func main() {
 		c.JSON(consts.StatusOK, getServiceHosts(hosts,serviceRegistryIP))
 	})
 
-	h.POST("/post/:serviceName/:methodName", func(ctx context.Context, c *app.RequestContext) {
+	h.POST("/:serviceName/:methodName", func(ctx context.Context, c *app.RequestContext) {
 
 		serviceName := c.Param("serviceName")
 		
@@ -297,16 +297,6 @@ func main() {
 
 		c.JSON(consts.StatusOK, responseFromRPC)
 
-	})
-
-	h.PUT("/put", func(ctx context.Context, c *app.RequestContext) {
-		c.String(consts.StatusOK, "put")
-	})
-	h.DELETE("/delete", func(ctx context.Context, c *app.RequestContext) {
-		c.String(consts.StatusOK, "delete")
-	})
-	h.PATCH("/patch", func(ctx context.Context, c *app.RequestContext) {
-		c.String(consts.StatusOK, "patch")
 	})
 
 	//spin runs the application
